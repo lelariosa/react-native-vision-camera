@@ -78,6 +78,30 @@ fun flipImage(imageBytes: ByteArray): ByteArray {
   return stream.toByteArray()
 }
 
+fun rotateImage(imageBytes: ByteArray): ByteArray {
+  val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+  val matrix = Matrix()
+
+  val exif = ExifInterface(imageBytes.inputStream())
+
+  when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)) {
+    ExifInterface.ORIENTATION_ROTATE_90 -> {
+      matrix.postRotate(90f)
+    }
+    ExifInterface.ORIENTATION_ROTATE_180 -> {
+      matrix.postRotate(180f)
+    }
+    ExifInterface.ORIENTATION_ROTATE_270 -> {
+      matrix.postRotate(270f)
+    }
+  }
+
+  val newBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+  val stream = ByteArrayOutputStream()
+  newBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+  return stream.toByteArray()
+}
+
 fun ImageProxy.save(file: File, flipHorizontally: Boolean) {
   when (format) {
     // TODO: ImageFormat.RAW_SENSOR
@@ -95,6 +119,8 @@ fun ImageProxy.save(file: File, flipHorizontally: Boolean) {
         }
         Log.i(CameraView.TAG_PERF, "Flipping Image took $milliseconds ms.")
       }
+
+      bytes = rotateImage(bytes)
 
       val output = FileOutputStream(file)
       output.write(bytes)
